@@ -1,53 +1,56 @@
-todo=[]
+import sqlite3
 
-def add_todo(add_new):
-    todo.append(add_new)
+connection = sqlite3.connect("todo.db")
 
-def expand_todos(tasks):
-    print("numer indeksu - nazwa zadania")
-    for line in tasks:
-        number=tasks.index(line)
-        print(number," - ", line)
-
-def delete_todo(tasks, number_index):
-    if number_index >= 0 and number_index < len(tasks):
-        tasks.pop(number_index)
-    else:
-        print("Podano niepoprawną wartość.")
-
-def save_file(tasks):
-    with open("todo.txt", "w", encoding="utf-8") as file_todo:
-        for task in tasks:
-            file_todo.write(f"{task}\n")
-
-def load_task_from_file(tasks):
+def create_table(connection):
     try:
-        with open("todo.txt", "r", encoding="utf-8") as todos:
-            for line in todos.readlines():
-                tasks.append(line.strip())
-    except FileNotFoundError:
-        return
+        cur=connection.cursor()
+        cur.execute("""CREATE TABLE tasks(task text)""")
+    except:
+        pass
 
-load_task_from_file(todo)
+def add_todo(add_new, connection):
+    if add_new == "":
+        print("Powrót do menu")
+    else:
+        cur=connection.cursor()
+        cur.execute("""INSERT INTO tasks(task) VALUES(?)""", (add_new,))
+        connection.commit()
+
+def expand_todos(connection):
+    cur=connection.cursor()
+    cur.execute("""SELECT rowid, task FROM tasks""")
+    result=cur.fetchall()
+    for row in result:
+        print(f'{row[0]} - {row[1]}')
+
+def delete_todo(connection, number_index):
+    cur=connection.cursor()
+    row_delete=cur.execute("""DELETE FROM tasks WHERE rowid=?""", (number_index,)).rowcount
+    if row_delete == 0:
+        print("Takie zadanie nie istnieje.")
+    else:
+        print("Usunięto zadanie.")
+    connection.commit()
+
+create_table(connection)
+
 while True:
     print("1:Dodaj nowe todo")
     print("2:Wyświetl listę todo")
     print("3:Usuń todo")
-    print("4:Zapisz zmiany do pliku")
-    print("5:wyjdź")
+    print("4:wyjdź")
     option=int(input("Wybierz opcję: "))
     if option == 1:
         add_new_todo= input("Wprowadź nowe zadanie do wykonania: ")
-        add_todo(add_new_todo)
+        add_todo(add_new_todo, connection)
     elif option == 2:
-        expand_todos(todo)
+        expand_todos(connection)
     elif option == 3:
-        expand_todos(todo)
+        expand_todos(connection)
         number_index= int(input("Wprowadź numer indeksu dla zadania do usunięcia: "))
-        delete_todo(todo, number_index)
+        delete_todo(connection, number_index)
     elif option == 4:
-        save_file(todo)
-    elif option == 5:
         exit("Wychodzimy z aplikacji")
     else:
         exit("Wprowadziłeś niepoprawne dane, uruchom ponownie aplikacje.")
